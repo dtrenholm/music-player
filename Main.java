@@ -1,3 +1,4 @@
+
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -10,7 +11,7 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 
 
-public class PlayerApplication extends Application
+public class Main extends Application
 {
 	@Override
 	public void start(Stage mainStage)
@@ -31,8 +32,7 @@ public class PlayerApplication extends Application
 					}
 			
 				}
-		
-				
+
 				);
 		
 		Group buttons = new Group(testButton);
@@ -54,4 +54,5 @@ public class PlayerApplication extends Application
 		launch(args);
 	}
 	
-}
+} 
+
