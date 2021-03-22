@@ -1,17 +1,14 @@
-import java.util.Scanner;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
-
+import javax.sound.sampled.*;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.TextArea;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.Group;
-import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -20,16 +17,75 @@ import javafx.geometry.Pos;
 
 public class Main extends Application
 {
+	boolean audioPlaying;
 
 	public static void main(String[] args)
 	{	
 		launch(args);
 	}
 
+	public void playback (String audioFilePath) 
+	{
+
+		File audioFile = new File(audioFilePath);
+		
+		try 
+		{
+			AudioInputStream audioStream = AudioSystem.getAudioInputStream(audioFile);
+			
+			AudioFormat format = audioStream.getFormat();
+			
+			DataLine.Info info = new DataLine.Info(Clip.class, format);
+			
+			Clip audioClip = (Clip) AudioSystem.getLine(info);
+			
+			//Ensures that resources are properly freed after audio has finished playing.
+			audioClip.addLineListener(e -> 
+				{
+					if (e.getType() == LineEvent.Type.STOP)
+							{
+								audioClip.close();
+								//System.out.println("Song finished.");
+							}
+				});
+			
+			audioClip.open(audioStream);
+			
+			audioClip.start();
+	
+		}
+		
+		catch (UnsupportedAudioFileException e1) 
+		{
+			e1.printStackTrace();
+		}
+		catch (IOException e1)
+		{
+			e1.printStackTrace();
+		} 
+		catch (LineUnavailableException e) 
+		{
+			e.printStackTrace();
+		}
+		
+		
+		while (audioPlaying == true)
+		{
+			try 
+			{
+				Thread.sleep(100);
+			} 
+			catch (InterruptedException e)
+			{
+				e.printStackTrace();
+			}
+		}
+
+	}
+	
 	@Override
 	public void start(Stage mainStage)
 	{
-		
 		TextField dirInput = new TextField();
 		
 		ListView<String> dirList = new ListView<String>();
@@ -87,6 +143,7 @@ public class Main extends Application
 				public void handle(javafx.scene.input.MouseEvent event)
 					{
 						System.out.println(dirInput.getText() + dirList.getSelectionModel().selectedItemProperty().getValue());
+						playback(dirInput.getText() + dirList.getSelectionModel().selectedItemProperty().getValue().toString());
 					}
 			});
 		
