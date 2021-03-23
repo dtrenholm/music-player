@@ -7,7 +7,9 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Slider;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.Stage;
 import javafx.event.ActionEvent;
@@ -24,7 +26,7 @@ public class Main extends Application
 		launch(args);
 	}
 
-	public void playback (String audioFilePath, Button pauseButton) 
+	public void playback (String audioFilePath, Button pauseButton, Slider volumeSlider) 
 	{
 
 		File audioFile = new File(audioFilePath);
@@ -36,25 +38,24 @@ public class Main extends Application
 			AudioFormat format = audioStream.getFormat();
 			
 			DataLine.Info info = new DataLine.Info(Clip.class, format);
-			
+
 			Clip audioClip = (Clip) AudioSystem.getLine(info);
 			
-			//Ensures that resources are properly freed after audio has finished playing.
-			audioClip.addLineListener(e -> 
-				{
-					if (e.getType() == LineEvent.Type.STOP && audioPlaying == false)
-							{
-								audioClip.close();
-								//System.out.println("Song finished.");
-								audioPlaying = false;
-							}
-				});
 			
 			audioClip.open(audioStream);
 			
 			audioClip.start();
 			
 			audioPlaying = true;
+			
+			audioClip.addLineListener(e -> 
+			{
+				if (e.getType() == LineEvent.Type.STOP && audioPaused == false)
+						{
+							audioPlaying = false;
+							System.out.println("Song finished.");
+						}
+			});
 			
 			pauseButton.setOnAction(new EventHandler<ActionEvent>()
 			{
@@ -76,11 +77,14 @@ public class Main extends Application
 				}
 				
 			});
-			
-			
-	
-		}
+
+			volumeSlider.valueProperty().addListener(e -> 
+					{
+						setVolume(audioClip, volumeSlider.valueProperty().doubleValue());
+					});
 		
+			
+		}
 		catch (UnsupportedAudioFileException e1) 
 		{
 			e1.printStackTrace();
@@ -93,12 +97,18 @@ public class Main extends Application
 		{
 			e.printStackTrace();
 		}
-		
-		
-		
-	
-
 	}
+	
+	
+	//Method has slight delay in actually adjusting the volume, unsure if this can be avoided
+	public void setVolume(Clip clip, double vol)
+	{
+		FloatControl volume = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+		
+		//Equation required to convert slider values to audible changes in volume
+		volume.setValue(20f * (float) Math.log10(vol));
+	}
+	
 	
 	@Override
 	public void start(Stage mainStage)
@@ -109,12 +119,11 @@ public class Main extends Application
 		dirList.setPrefHeight(200);
 		
 		Button dirButton = new Button("Click to add audio file directory.");
-		
 		Button pauseButton = new Button("Pause");
 		
 		BorderPane.setAlignment(dirButton, Pos.BOTTOM_CENTER);
 		BorderPane.setAlignment(pauseButton, Pos.BOTTOM_LEFT);
-		
+
 		
 		dirButton.setOnAction(new EventHandler<ActionEvent>()
 				{
@@ -142,6 +151,42 @@ public class Main extends Application
 						}
 					}
 				});
+
+		
+		BorderPane pane = new BorderPane();
+	
+		//BorderPane.setAlignment(dirButton, Pos.TOP_RIGHT);
+		//BorderPane.setAlignment(dirInput, Pos.TOP_LEFT);
+		//BorderPane.setAlignment(pauseButton, Pos.TOP_LEFT);
+		//BorderPane.setAlignment(volSlider, Pos.CENTER_LEFT);
+		
+		
+		HBox controls = new HBox();
+		
+		Slider volSlider = new Slider(0, 1, .5);
+		volSlider.setShowTickMarks(true);
+
+		controls.getChildren().addAll(volSlider, pauseButton);
+		
+		
+		pane.setTop(dirInput);
+		pane.setRight(dirButton);
+		pane.setBottom(dirList);
+		pane.setLeft(controls);
+		
+
+		
+		pane.setStyle("-fx-border-width: 1;");
+		pane.setStyle("-fx-padding: 15;");
+		
+		//Final step in GUI Creation.
+		
+		Scene scene = new Scene(pane, 400, 400);
+
+		mainStage.setScene(scene);
+		mainStage.setTitle("Music Player - ECE 5010");
+		mainStage.show();
+		
 		
 		
 		
@@ -160,33 +205,13 @@ public class Main extends Application
 				@Override
 				public void handle(javafx.scene.input.MouseEvent event)
 					{
-						System.out.println(dirInput.getText() + dirList.getSelectionModel().selectedItemProperty().getValue());
-						playback(dirInput.getText() + dirList.getSelectionModel().selectedItemProperty().getValue().toString(), pauseButton);
+						//If-statement is used to prevent multiple clips from being played simultaneously.
+						if (audioPlaying == false)
+						{
+							System.out.println(dirInput.getText() + dirList.getSelectionModel().selectedItemProperty().getValue());
+							playback(dirInput.getText() + dirList.getSelectionModel().selectedItemProperty().getValue().toString(), pauseButton, volSlider);
+						}
 					}
 			});
-		
-		
-		BorderPane pane = new BorderPane();
-	
-		BorderPane.setAlignment(dirButton, Pos.TOP_RIGHT);
-		BorderPane.setAlignment(dirInput, Pos.TOP_LEFT);
-		BorderPane.setAlignment(pauseButton, Pos.TOP_LEFT);
-		
-		pane.setTop(dirInput);
-		pane.setRight(dirButton);
-		pane.setBottom(dirList);
-		pane.setLeft(pauseButton);
-		
-		pane.setStyle("-fx-border-width: 1;");
-		pane.setStyle("-fx-padding: 15;");
-		
-		//Final step in GUI Creation.
-		
-		Scene scene = new Scene(pane, 400, 400);
-
-		mainStage.setScene(scene);
-		mainStage.setTitle("Music Player - ECE 5010");
-		mainStage.show();
 	}
-	
 } 
