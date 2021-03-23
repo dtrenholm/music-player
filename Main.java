@@ -14,17 +14,17 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 
-
 public class Main extends Application
 {
-	boolean audioPlaying;
+	boolean audioPlaying = false;
+	boolean audioPaused = false;
 
 	public static void main(String[] args)
 	{	
 		launch(args);
 	}
 
-	public void playback (String audioFilePath) 
+	public void playback (String audioFilePath, Button pauseButton) 
 	{
 
 		File audioFile = new File(audioFilePath);
@@ -42,16 +42,42 @@ public class Main extends Application
 			//Ensures that resources are properly freed after audio has finished playing.
 			audioClip.addLineListener(e -> 
 				{
-					if (e.getType() == LineEvent.Type.STOP)
+					if (e.getType() == LineEvent.Type.STOP && audioPlaying == false)
 							{
 								audioClip.close();
 								//System.out.println("Song finished.");
+								audioPlaying = false;
 							}
 				});
 			
 			audioClip.open(audioStream);
 			
 			audioClip.start();
+			
+			audioPlaying = true;
+			
+			pauseButton.setOnAction(new EventHandler<ActionEvent>()
+			{
+
+				@Override
+				public void handle(ActionEvent arg0)
+				{
+					if (audioPaused == false)
+					{
+						audioClip.stop();
+						audioPaused = true;
+					}
+					
+					else
+					{
+						audioClip.start();
+						audioPaused = false;
+					}
+				}
+				
+			});
+			
+			
 	
 		}
 		
@@ -69,17 +95,8 @@ public class Main extends Application
 		}
 		
 		
-		while (audioPlaying == true)
-		{
-			try 
-			{
-				Thread.sleep(100);
-			} 
-			catch (InterruptedException e)
-			{
-				e.printStackTrace();
-			}
-		}
+		
+	
 
 	}
 	
@@ -93,7 +110,11 @@ public class Main extends Application
 		
 		Button dirButton = new Button("Click to add audio file directory.");
 		
+		Button pauseButton = new Button("Pause");
+		
 		BorderPane.setAlignment(dirButton, Pos.BOTTOM_CENTER);
+		BorderPane.setAlignment(pauseButton, Pos.BOTTOM_LEFT);
+		
 		
 		dirButton.setOnAction(new EventHandler<ActionEvent>()
 				{
@@ -120,10 +141,7 @@ public class Main extends Application
 							System.out.println("Error occurred, directory may not exist. Please try again.");
 						}
 					}
-			
-				}
-
-				);
+				});
 		
 		
 		
@@ -143,7 +161,7 @@ public class Main extends Application
 				public void handle(javafx.scene.input.MouseEvent event)
 					{
 						System.out.println(dirInput.getText() + dirList.getSelectionModel().selectedItemProperty().getValue());
-						playback(dirInput.getText() + dirList.getSelectionModel().selectedItemProperty().getValue().toString());
+						playback(dirInput.getText() + dirList.getSelectionModel().selectedItemProperty().getValue().toString(), pauseButton);
 					}
 			});
 		
@@ -152,10 +170,12 @@ public class Main extends Application
 	
 		BorderPane.setAlignment(dirButton, Pos.TOP_RIGHT);
 		BorderPane.setAlignment(dirInput, Pos.TOP_LEFT);
+		BorderPane.setAlignment(pauseButton, Pos.TOP_LEFT);
 		
 		pane.setTop(dirInput);
 		pane.setRight(dirButton);
 		pane.setBottom(dirList);
+		pane.setLeft(pauseButton);
 		
 		pane.setStyle("-fx-border-width: 1;");
 		pane.setStyle("-fx-padding: 15;");
