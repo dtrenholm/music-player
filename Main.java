@@ -26,7 +26,7 @@ public class Main extends Application
 		launch(args);
 	}
 
-	public void playback (String audioFilePath, Button pauseButton, Slider volumeSlider) 
+	public void playback (String audioFilePath, Button pauseButton, Button stopButton, Slider volumeSlider) 
 	{
 
 		File audioFile = new File(audioFilePath);
@@ -57,6 +57,7 @@ public class Main extends Application
 						}
 			});
 			
+			//Pause button needs to be clicked twice if previous clip was stopped while paused, fix possible?
 			pauseButton.setOnAction(new EventHandler<ActionEvent>()
 			{
 
@@ -77,6 +78,25 @@ public class Main extends Application
 				}
 				
 			});
+			
+			stopButton.setOnAction(new EventHandler<ActionEvent>()
+			{
+
+				@Override
+				public void handle(ActionEvent arg0)
+				{
+					if (audioPlaying == true)
+					{
+						audioClip.stop();
+						audioClip.close();
+						audioPlaying = false;
+						//audioPaused = false;
+						
+					}
+					
+				}	
+			});
+			
 
 			volumeSlider.valueProperty().addListener(e -> 
 					{
@@ -120,10 +140,8 @@ public class Main extends Application
 		
 		Button dirButton = new Button("Click to add audio file directory.");
 		Button pauseButton = new Button("Pause");
+		Button stopButton = new Button("Stop");
 		
-		BorderPane.setAlignment(dirButton, Pos.BOTTOM_CENTER);
-		BorderPane.setAlignment(pauseButton, Pos.BOTTOM_LEFT);
-
 		
 		dirButton.setOnAction(new EventHandler<ActionEvent>()
 				{
@@ -152,27 +170,25 @@ public class Main extends Application
 					}
 				});
 
-		
-		BorderPane pane = new BorderPane();
-	
-		//BorderPane.setAlignment(dirButton, Pos.TOP_RIGHT);
-		//BorderPane.setAlignment(dirInput, Pos.TOP_LEFT);
-		//BorderPane.setAlignment(pauseButton, Pos.TOP_LEFT);
-		//BorderPane.setAlignment(volSlider, Pos.CENTER_LEFT);
-		
-		
 		HBox controls = new HBox();
 		
 		Slider volSlider = new Slider(0, 1, .5);
 		volSlider.setShowTickMarks(true);
 
-		controls.getChildren().addAll(volSlider, pauseButton);
+		controls.getChildren().addAll(volSlider, pauseButton, stopButton);
+		
+		BorderPane pane = new BorderPane();
+	
+		
+		BorderPane.setAlignment(dirInput, Pos.TOP_LEFT);
+		BorderPane.setAlignment(controls, Pos.BOTTOM_LEFT);
+		
 		
 		
 		pane.setTop(dirInput);
 		pane.setRight(dirButton);
 		pane.setBottom(dirList);
-		pane.setLeft(controls);
+		pane.setCenter(controls);
 		
 
 		
@@ -181,7 +197,7 @@ public class Main extends Application
 		
 		//Final step in GUI Creation.
 		
-		Scene scene = new Scene(pane, 400, 400);
+		Scene scene = new Scene(pane, 500, 500);
 
 		mainStage.setScene(scene);
 		mainStage.setTitle("Music Player - ECE 5010");
@@ -209,7 +225,9 @@ public class Main extends Application
 						if (audioPlaying == false)
 						{
 							System.out.println(dirInput.getText() + dirList.getSelectionModel().selectedItemProperty().getValue());
-							playback(dirInput.getText() + dirList.getSelectionModel().selectedItemProperty().getValue().toString(), pauseButton, volSlider);
+							playback(dirInput.getText() 
+								+ dirList.getSelectionModel().selectedItemProperty().getValue().toString(), 
+									pauseButton, stopButton, volSlider);
 						}
 					}
 			});
