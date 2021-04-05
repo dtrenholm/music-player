@@ -14,19 +14,21 @@ import javafx.scene.input.MouseEvent;
 import javafx.stage.Stage;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 
 public class Main extends Application
 {
 	boolean audioPlaying = false;
 	boolean audioPaused = false;
+	long timeHolder = System.currentTimeMillis();
 
 	public static void main(String[] args)
 	{	
 		launch(args);
 	}
 
-	public void playback (String audioFilePath, Button pauseButton, Button stopButton, Slider volumeSlider) 
+	public void playback (String audioFilePath, Button pauseButton, Button stopButton, Slider volumeSlider, Slider eqSlider1, ListView<String> queueList) 
 	{
 
 		File audioFile = new File(audioFilePath);
@@ -46,16 +48,31 @@ public class Main extends Application
 			
 			audioClip.start();
 			
+			audioPaused = false;
+			
 			audioPlaying = true;
 			
 			audioClip.addLineListener(e -> 
 			{
 				if (e.getType() == LineEvent.Type.STOP && audioPaused == false)
 						{
+							audioClip.close();
+							System.out.println("Song finished.");	
+							
+							if (queueList.getItems().isEmpty() != true && audioPlaying == true)
+							{
+								playback(queueList.getItems().get(0),
+										pauseButton, stopButton, volumeSlider, eqSlider1, queueList);
+								
+								queueList.getItems().remove(queueList.getItems().get(0));
+							}
+							
 							audioPlaying = false;
-							System.out.println("Song finished.");
 						}
 			});
+			
+			
+			
 			
 			//Pause button needs to be clicked twice if previous clip was stopped while paused, fix possible?
 			pauseButton.setOnAction(new EventHandler<ActionEvent>()
@@ -90,17 +107,24 @@ public class Main extends Application
 						audioClip.stop();
 						audioClip.close();
 						audioPlaying = false;
-						//audioPaused = false;
+						audioPaused = false;
+						return;
 						
 					}
 					
 				}	
 			});
 			
+			
 
 			volumeSlider.valueProperty().addListener(e -> 
 					{
 						setVolume(audioClip, volumeSlider.valueProperty().doubleValue());
+					});
+			
+			eqSlider1.valueProperty().addListener(e -> 
+					{
+						setPan(audioClip, eqSlider1.valueProperty().doubleValue());
 					});
 		
 			
@@ -129,6 +153,13 @@ public class Main extends Application
 		volume.setValue(20f * (float) Math.log10(vol));
 	}
 	
+	public void setPan(Clip clip, double pan)
+	{
+		FloatControl panAmount = (FloatControl) clip.getControl(FloatControl.Type.PAN);
+		
+		panAmount.setValue((float) pan);
+	}
+	
 	
 	@Override
 	public void start(Stage mainStage)
@@ -136,7 +167,11 @@ public class Main extends Application
 		TextField dirInput = new TextField();
 		
 		ListView<String> dirList = new ListView<String>();
+		
+		ListView<String> queueList = new ListView<String>();
+		
 		dirList.setPrefHeight(200);
+		queueList.setPrefHeight(200);
 		
 		Button dirButton = new Button("Click to add audio file directory.");
 		Button pauseButton = new Button("Pause");
@@ -171,24 +206,43 @@ public class Main extends Application
 				});
 
 		HBox controls = new HBox();
+		HBox equalizer = new HBox();
+		HBox windows = new HBox();
 		
-		Slider volSlider = new Slider(0, 1, .5);
+		Slider volSlider = new Slider(-1, 1, 0);
 		volSlider.setShowTickMarks(true);
+		
+		Slider eqSlider1 = new Slider(-1, 1, 0);
+		eqSlider1.setOrientation(Orientation.VERTICAL);
+		
+		Slider eqSlider2 = new Slider(-1, 1, 0);
+		eqSlider2.setOrientation(Orientation.VERTICAL);
+		
+		Slider eqSlider3 = new Slider(-1, 1, 0);
+		eqSlider3.setOrientation(Orientation.VERTICAL);
+		
+		Slider eqSlider4 = new Slider(-1, 1, 0);
+		eqSlider4.setOrientation(Orientation.VERTICAL);
+		
 
-		controls.getChildren().addAll(volSlider, pauseButton, stopButton);
+		controls.getChildren().addAll(dirInput, volSlider, pauseButton, stopButton);
+		equalizer.getChildren().addAll(eqSlider1, eqSlider2, eqSlider3, eqSlider4);
+		windows.getChildren().addAll(dirList, queueList);
+		
 		
 		BorderPane pane = new BorderPane();
 	
 		
-		BorderPane.setAlignment(dirInput, Pos.TOP_LEFT);
-		BorderPane.setAlignment(controls, Pos.BOTTOM_LEFT);
+		BorderPane.setAlignment(dirInput, Pos.TOP_CENTER);
+		BorderPane.setAlignment(dirButton, Pos.TOP_RIGHT);
+		BorderPane.setAlignment(controls, Pos.BOTTOM_RIGHT);
+		BorderPane.setAlignment(equalizer, Pos.CENTER);
 		
 		
-		
-		pane.setTop(dirInput);
+		pane.setTop(controls);
 		pane.setRight(dirButton);
-		pane.setBottom(dirList);
-		pane.setCenter(controls);
+		pane.setBottom(windows);
+		pane.setCenter(equalizer);
 		
 
 		
@@ -216,20 +270,69 @@ public class Main extends Application
 				}
 			}
 		
+		
+		
+	
 		dirList.setOnMouseClicked(new listHandler()
 			{
 				@Override
 				public void handle(javafx.scene.input.MouseEvent event)
 					{
-						//If-statement is used to prevent multiple clips from being played simultaneously.
-						if (audioPlaying == false)
-						{
-							System.out.println(dirInput.getText() + dirList.getSelectionModel().selectedItemProperty().getValue());
-							playback(dirInput.getText() 
-								+ dirList.getSelectionModel().selectedItemProperty().getValue().toString(), 
-									pauseButton, stopButton, volSlider);
+						long mouseCheck = 0;
+						
+						long currentTime = System.currentTimeMillis();
+						
+						mouseCheck = currentTime - timeHolder;
+						
+						if (mouseCheck <= 200 && mouseCheck > 0)
+						{				
+							//If-statement is used to prevent multiple clips from being played simultaneously.
+							if (audioPlaying == false)
+							{
+								System.out.println(dirInput.getText() + dirList.getSelectionModel().selectedItemProperty().getValue());
+								playback(dirInput.getText() 
+									+ dirList.getSelectionModel().selectedItemProperty().getValue().toString(), 
+										pauseButton, stopButton, volSlider,eqSlider1, queueList);
+							}
+							else
+							{
+								queueList.getItems().add(dirInput.getText() + dirList.getSelectionModel().selectedItemProperty().getValue());
+							}
 						}
+						timeHolder = currentTime;
 					}
 			});
+		
+		queueList.setOnMouseClicked(new listHandler()
+				{
+					@Override
+					public void handle(javafx.scene.input.MouseEvent event)
+					{
+						long mouseCheck = 0;
+						
+						long currentTime = System.currentTimeMillis();
+						
+						mouseCheck = currentTime - timeHolder;
+						
+						if (mouseCheck <= 200 && mouseCheck > 0)
+						
+						if (audioPlaying == false)
+						{
+							playback(queueList.getSelectionModel().selectedItemProperty().getValue().toString(), 
+										pauseButton, stopButton, volSlider, eqSlider1, queueList);
+							
+							
+							
+							queueList.getItems().remove(dirList.getSelectionModel().getSelectedIndex());
+						}
+						timeHolder = currentTime;
+					}
+					
+				}
+				
+				
+				
+			);
+	
 	}
 } 
