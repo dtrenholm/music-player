@@ -3,6 +3,7 @@ package application;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.sound.sampled.*;
@@ -19,6 +20,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.media.Media;
+import javafx.scene.text.Text;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.Stage;
 import javafx.event.ActionEvent;
@@ -27,45 +29,65 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
+
 
 public class Main extends Application
 {
 	
 	public class SongObject
 	{
-		public String Title;
-		public String Artist;
-		public String Album;
+		public StringProperty Title;
+		public StringProperty Artist;
+		public StringProperty Album;
 		public File FilePath;
+		private ObservableMap<String, Object> DataMap;
 		
 		public SongObject(String audioFilePath) {
-			Title = "IDK";
-			Artist = "IDK";
-			Album = "IDK";
+			
+			Title = new SimpleStringProperty();
+			Artist = new SimpleStringProperty();
+			Album = new SimpleStringProperty();
+			
+			Title.setValue("IDK");
+			Artist.setValue("IDK");
+			Album.setValue("IDK");
 			FilePath = new File(audioFilePath);
 			Media tempMedia = new Media(audioFilePath);
-			ObservableMap<String, Object> testMap = tempMedia.getMetadata();
+			ObservableMap<String, Object> DataMap = tempMedia.getMetadata();
 			
-			
-			
-			//MapChangeListener<String, Object> testListener = null;
-			testMap.addListener((MapChangeListener.Change<? extends String, ? extends Object> chg) -> {
-					StringBuilder labelTxt = new StringBuilder();
+			/*Title.addListener(new ChangeListener() {
+
+				@Override
+				public void changed(ObservableValue observable, Object oldValue, Object newValue) {
+					// TODO Auto-generated method stub
 					
-					for(String key : testMap.keySet()) {
+				}
+				
+				@Override
+			});
+			*/
+			DataMap.addListener((MapChangeListener.Change<? extends String, ? extends Object> chg) -> {
+					StringBuilder labelTxt = new StringBuilder();
+					System.out.println("Hello!!!!");
+					for(String key : DataMap.keySet()) {
+							System.out.println(DataMap.get(key).toString());
 							if (key == "title") {
-								labelTxt.append(testMap.get(key));
-								Title = labelTxt.toString();
+								labelTxt.append(DataMap.get(key));
+								Title.setValue(labelTxt.toString());
 								labelTxt.delete(0, labelTxt.length());
 							}
 							else if (key == "artist") {
-								labelTxt.append(testMap.get(key));
-								Artist = labelTxt.toString();
+								labelTxt.append(DataMap.get(key));
+								Artist.setValue(labelTxt.toString());
 								labelTxt.delete(0,  labelTxt.length());
 							}
 							else if (key == "album") {
-								labelTxt.append(testMap.get(key));
-								Album = labelTxt.toString();
+								labelTxt.append(DataMap.get(key));
+								Album.setValue(labelTxt.toString());
 								labelTxt.delete(0,  labelTxt.length());
 							}
 
@@ -84,7 +106,11 @@ public class Main extends Application
 	
 	public class Playlist
 	{
-		public List<SongObject> Songs;
+		public ArrayList<SongObject> Songs;
+		
+		Playlist() {
+			Songs = new ArrayList<SongObject>();
+		}
 		
 		void addSong(SongObject toBeAdded) {
 			Songs.add(toBeAdded);
@@ -97,6 +123,8 @@ public class Main extends Application
 	}
 	int arrayIndex = 0;
 
+	ArrayList<ArrayList<Text>> dataLists = new ArrayList<ArrayList<Text>>();
+	
 	Playlist playlist = new Playlist();
 	
 	boolean audioPlaying = false;
@@ -180,6 +208,7 @@ public class Main extends Application
 		}
 	}
 	
+	int x = 0;
 	
 	//Method has slight delay in actually adjusting the volume, unsure if this can be avoided
 	public void setVolume(Clip clip, double vol)
@@ -211,6 +240,10 @@ public class Main extends Application
 		VBox vert2 = new VBox();
 		VBox vert3 = new VBox();
 		
+		vert1.getChildren().add(new Label("Song"));
+		vert2.getChildren().add(new Label("Artist"));
+		vert3.getChildren().add(new Label("Album"));
+		
 		horizontal.getChildren().addAll(vert1, vert2, vert3);
 		
 		dirButton.setOnAction(new EventHandler<ActionEvent>()
@@ -241,6 +274,7 @@ public class Main extends Application
 				});
 
 		
+							
 		BorderPane pane = new BorderPane();
 	
 		//BorderPane.setAlignment(dirButton, Pos.TOP_RIGHT);
@@ -297,10 +331,27 @@ public class Main extends Application
 						//If-statement is used to prevent multiple clips from being played simultaneously.
 						if (audioPlaying == false)
 						{
-							vert1.getChildren().add(new Label("Song"));
-							vert2.getChildren().add(new Label("Artist"));
-							vert3.getChildren().add(new Label("Artist"));
-							playlist.addSong(new SongObject(dirInput.getText() + dirList.getSelectionModel().selectedItemProperty().getValue()));
+							playlist.addSong(new SongObject(Paths.get(dirList.getSelectionModel().selectedItemProperty().getValue().toString()).toUri().toString()));
+							System.out.println(Paths.get(dirList.getSelectionModel().selectedItemProperty().getValue().toString()).toUri().toString());
+							dataLists.add(new ArrayList<Text>());
+							dataLists.get(0).add(new Text());
+							dataLists.get(0).get(0).textProperty().bind(playlist.Songs.get(0).Title);
+							vert1.getChildren().add(dataLists.get(0).get(0));
+							vert3.getChildren().add(dataLists.get(0).get(0));
+							vert2.getChildren().add(dataLists.get(0).get(0));
+							
+							/*Title.addListener(new ChangeListener() {
+
+								@Override
+								public void changed(ObservableValue observable, Object oldValue, Object newValue) {
+									// TODO Auto-generated method stub
+									vert1.getChildren().get(1)
+								}
+								
+								@Override
+								
+							});*/
+							
 							System.out.println(dirList.getSelectionModel().selectedItemProperty().getValue());
 							playback(dirInput.getText() + dirList.getSelectionModel().selectedItemProperty().getValue().toString(), pauseButton, volSlider);
 						}
