@@ -1,3 +1,4 @@
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
@@ -85,12 +86,16 @@ public class Main extends Application
 					{
 						audioClip.stop();
 						audioPaused = true;
+						if (audioPlaying == true) {
+							pauseButton.setText("Play");
+						}
 					}
 					
 					else
 					{
 						audioClip.start();
 						audioPaused = false;
+						pauseButton.setText("Pause");
 					}
 				}
 				
@@ -106,11 +111,14 @@ public class Main extends Application
 					{
 						audioClip.stop();
 						audioClip.close();
-						audioPlaying = false;
-						audioPaused = false;
-						return;
-						
 					}
+					
+					audioPlaying = false;
+					audioPaused = false;
+					pauseButton.setText("Pause");
+					return;
+						
+					
 					
 				}	
 			});
@@ -150,7 +158,9 @@ public class Main extends Application
 		FloatControl volume = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
 		
 		//Equation required to convert slider values to audible changes in volume
-		volume.setValue(20f * (float) Math.log10(vol));
+		volume.setValue((float)((vol+1)*86.0206/2)-80);
+		//Old Equation:
+		//volume.setValue(20f * (float) Math.log10(vol));
 	}
 	
 	public void setPan(Clip clip, double pan)
@@ -323,7 +333,7 @@ public class Main extends Application
 							
 							
 							
-							queueList.getItems().remove(dirList.getSelectionModel().getSelectedIndex());
+							queueList.getItems().remove(queueList.getSelectionModel().getSelectedIndex());
 						}
 						timeHolder = currentTime;
 					}
