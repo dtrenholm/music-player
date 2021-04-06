@@ -158,7 +158,12 @@ public class Main extends Application
 		FloatControl volume = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
 		
 		//Equation required to convert slider values to audible changes in volume
-		volume.setValue((float)((vol+1)*86.0206/2)-80);
+		if (vol <= 0.5) {
+			volume.setValue((float)((Math.log((vol+1)*(4/3)+0.2) + 3 - 1.391)*26.9151 - 80));
+		}
+		else {
+			volume.setValue((float)(((vol+1)*86.0206/2)-80));
+		}
 		//Old Equation:
 		//volume.setValue(20f * (float) Math.log10(vol));
 	}
