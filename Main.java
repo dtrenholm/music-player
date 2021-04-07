@@ -3,11 +3,19 @@ package application;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
+import java.util.Timer;
+import java.util.TimerTask;
+
 import javax.sound.sampled.*;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.application.Application;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Slider;
 import javafx.scene.layout.BorderPane;
@@ -33,7 +41,7 @@ public class Main extends Application
 		launch(args);
 	}
 
-	public void playback (String audioFilePath, Button pauseButton, Button stopButton, Button skipButton, Slider volumeSlider, Slider eqSlider1, ListView<String> queueList) 
+	public void playback (String audioFilePath, Button pauseButton, Button stopButton, Button skipButton, Slider volumeSlider, Slider eqSlider1, Slider progress, ListView<String> queueList) 
 	{
 
 		File audioFile = new File(audioFilePath);
@@ -48,16 +56,35 @@ public class Main extends Application
 
 			Clip audioClip = (Clip) AudioSystem.getLine(info);
 			
+			DoubleProperty progressNum = new SimpleDoubleProperty();
 			
 			audioClip.open(audioStream);
 			
 			audioClip.start();
+			
+			double length = audioClip.getMicrosecondLength() / 1000000;
 			
 			setVolume(audioClip, volumeSlider.valueProperty().doubleValue());
 			
 			audioPaused = false;
 			
 			audioPlaying = true;
+			
+			if (audioPaused == false && audioPlaying == true)
+			{
+					
+				
+				System.out.println(progressNum.get());
+				progressNum.addListener(new ChangeListener<Object>() {
+					
+					@Override
+					public void changed(ObservableValue<? extends Object> observable,
+							Object oldValue, Object newValue) {
+						progress.valueProperty().bind(progressNum);
+					}	
+				});	
+				
+			}
 			
 			audioClip.addLineListener(e -> 
 			{
@@ -69,16 +96,35 @@ public class Main extends Application
 							if (queueList.getItems().isEmpty() != true && audioPlaying == true)
 							{
 								playback(queueList.getItems().get(0),
-										pauseButton, stopButton, skipButton, volumeSlider, eqSlider1, queueList);
+										pauseButton, stopButton, skipButton, volumeSlider, eqSlider1, progress, queueList);
 								
 								queueList.getItems().remove(queueList.getItems().get(0));
 							}
 							
 							audioPlaying = false;
 						}
+				if (audioClip.isRunning() == true)
+				{
+					progressNum.set((double)(audioClip.getMicrosecondPosition()/1000000/length));
+					System.out.println(progressNum.get());
+					System.out.println("AAAAAA");
+				}
 			});
 			
+			Timer t = new Timer();
 			
+			t.scheduleAtFixedRate(
+					new TimerTask()
+					{
+						public void run()
+						{
+							if (audioPlaying = true && audioPaused == false) {
+								progressNum.set((double)(audioClip.getMicrosecondPosition()/1000000/length));
+							}
+						}
+					},
+					0,
+					100);
 			
 			
 			//Pause button needs to be clicked twice if previous clip was stopped while paused, fix possible?
@@ -140,25 +186,32 @@ public class Main extends Application
 					}
 					audioPlaying = false;
 					audioPaused = false;
+					pauseButton.setText("Pause");
 					if (queueList.getItems().isEmpty() != true)
 					{
 						playback(queueList.getItems().get(0),
-								pauseButton, stopButton, skipButton, volumeSlider, eqSlider1, queueList);
+								pauseButton, stopButton, skipButton, volumeSlider, eqSlider1, progress, queueList);
 						
 						queueList.getItems().remove(queueList.getItems().get(0));
 					}
 				}
 			});
 
+			progress.valueProperty().addListener(e ->
+					{
+						setPosition(audioClip, progress.valueProperty().doubleValue());
+					});
+			
 			volumeSlider.valueProperty().addListener(e -> 
 					{
 						setVolume(audioClip, volumeSlider.valueProperty().doubleValue());
 					});
 			
-			eqSlider1.valueProperty().addListener(e -> 
-					{
-						setPan(audioClip, eqSlider1.valueProperty().doubleValue());
-					});
+			//Makes it break
+			//eqSlider1.valueProperty().addListener(e -> 
+			//		{
+			//			setPan(audioClip, eqSlider1.valueProperty().doubleValue());
+			//		});
 		
 			
 		}
@@ -176,6 +229,10 @@ public class Main extends Application
 		}
 	}
 	
+	public void setPosition(Clip clip, double pos)
+	{
+		clip.setMicrosecondPosition((long)pos * 1000000);
+	}
 	
 	//Method has slight delay in actually adjusting the volume, unsure if this can be avoided
 	public void setVolume(Clip clip, double vol)
@@ -210,6 +267,8 @@ public class Main extends Application
 		
 		ListView<String> queueList = new ListView<String>();
 		
+		ListView<String> playList = new ListView<String>();
+		
 		dirList.setPrefHeight(300);
 		queueList.setPrefHeight(300);
 		
@@ -217,6 +276,7 @@ public class Main extends Application
 		Button pauseButton = new Button("Pause");
 		Button stopButton = new Button("Stop");
 		Button skipButton = new Button("Next Song");
+		Button playListToQueueButton = new Button("Add Playlist To Queue");
 		
 		dirButton.setOnAction(new EventHandler<ActionEvent>()
 				{
@@ -245,10 +305,18 @@ public class Main extends Application
 					}
 				});
 
-		HBox controls = new HBox();
+		HBox controlsUpper = new HBox();
+		HBox controlsLower = new HBox();
+		VBox controls = new VBox();
 		VBox equalizer = new VBox();
 		VBox volumeBox = new VBox();
 		HBox windows = new HBox();
+		
+		controls.getChildren().addAll(controlsUpper, controlsLower);
+		
+		Slider progress = new Slider(0, 1, 0);
+		
+		controlsLower.getChildren().addAll(progress);
 		
 		Slider volSlider = new Slider(-1, 1, 0);
 		
@@ -276,7 +344,7 @@ public class Main extends Application
 		volumeBox.getChildren().addAll(volSlider, volText);
 		volumeBox.setAlignment(Pos.CENTER);
 		
-		controls.getChildren().addAll(dirInput, volumeBox, pauseButton, stopButton, skipButton);
+		controlsUpper.getChildren().addAll(dirInput, volumeBox, pauseButton, stopButton, skipButton);
 		equalizer.getChildren().addAll(eqSlider1, eqText1, eqSlider2, eqText2, eqSlider3, eqText3, eqSlider4, eqText4);
 		equalizer.setAlignment(Pos.CENTER);
 		windows.getChildren().addAll(dirList, queueList);
@@ -286,7 +354,7 @@ public class Main extends Application
 	
 		
 		BorderPane.setAlignment(dirButton, Pos.TOP_RIGHT);
-		BorderPane.setAlignment(controls, Pos.BOTTOM_RIGHT);
+		BorderPane.setAlignment(controlsUpper, Pos.BOTTOM_RIGHT);
 		BorderPane.setAlignment(equalizer, Pos.CENTER_LEFT);
 		
 		
@@ -337,17 +405,22 @@ public class Main extends Application
 						
 						if (mouseCheck <= 200 && mouseCheck > 0)
 						{				
+							String seperator = "\\";
+							if (dirInput.getText() == "") {
+								seperator = "";
+							}
 							//If-statement is used to prevent multiple clips from being played simultaneously.
 							if (audioPlaying == false)
 							{
-								System.out.println(dirInput.getText() + dirList.getSelectionModel().selectedItemProperty().getValue());
+								
+								System.out.println(dirInput.getText() + seperator + dirList.getSelectionModel().selectedItemProperty().getValue().toString());
 								playback(dirInput.getText() 
-									+ dirList.getSelectionModel().selectedItemProperty().getValue().toString(), 
-										pauseButton, stopButton, skipButton, volSlider,eqSlider1, queueList);
+									+ seperator + dirList.getSelectionModel().selectedItemProperty().getValue().toString(), 
+										pauseButton, stopButton, skipButton, volSlider,eqSlider1, progress, queueList);
 							}
 							else
 							{
-								queueList.getItems().add(dirInput.getText() + dirList.getSelectionModel().selectedItemProperty().getValue());
+								queueList.getItems().add(dirInput.getText() + seperator + dirList.getSelectionModel().selectedItemProperty().getValue());
 							}
 						}
 						timeHolder = currentTime;
@@ -375,7 +448,7 @@ public class Main extends Application
 							if (audioPlaying == false)
 							{
 								playback(queueList.getSelectionModel().selectedItemProperty().getValue().toString(), 
-										pauseButton, stopButton, skipButton, volSlider, eqSlider1, queueList);
+										pauseButton, stopButton, skipButton, volSlider, eqSlider1, progress, queueList);
 							
 							
 							
