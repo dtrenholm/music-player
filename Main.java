@@ -12,6 +12,8 @@ import javafx.beans.value.ObservableValue;
 import javafx.application.Application;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
@@ -41,7 +43,8 @@ public class Main extends Application
 		launch(args);
 	}
 
-	public void playback (String audioFilePath, Button pauseButton, Button stopButton, Button skipButton, Slider volumeSlider, Slider eqSlider1, Slider progress, ListView<String> queueList) 
+	public void playback (String audioFilePath, Button pauseButton, Button stopButton, Button skipButton, 
+			Slider volumeSlider, Slider eqSlider1, Slider progress, Text progNum, Slider setProgress, ListView<String> queueList) 
 	{
 
 		File audioFile = new File(audioFilePath);
@@ -56,8 +59,6 @@ public class Main extends Application
 
 			Clip audioClip = (Clip) AudioSystem.getLine(info);
 			
-			DoubleProperty progressNum = new SimpleDoubleProperty();
-			
 			audioClip.open(audioStream);
 			
 			audioClip.start();
@@ -70,22 +71,6 @@ public class Main extends Application
 			
 			audioPlaying = true;
 			
-			if (audioPaused == false && audioPlaying == true)
-			{
-					
-				
-				System.out.println(progressNum.get());
-				progressNum.addListener(new ChangeListener<Object>() {
-					
-					@Override
-					public void changed(ObservableValue<? extends Object> observable,
-							Object oldValue, Object newValue) {
-						progress.valueProperty().bind(progressNum);
-					}	
-				});	
-				
-			}
-			
 			audioClip.addLineListener(e -> 
 			{
 				if (e.getType() == LineEvent.Type.STOP && audioPaused == false)
@@ -96,30 +81,38 @@ public class Main extends Application
 							if (queueList.getItems().isEmpty() != true && audioPlaying == true)
 							{
 								playback(queueList.getItems().get(0),
-										pauseButton, stopButton, skipButton, volumeSlider, eqSlider1, progress, queueList);
+										pauseButton, stopButton, skipButton, volumeSlider, eqSlider1, progress, progNum, setProgress, queueList);
 								
 								queueList.getItems().remove(queueList.getItems().get(0));
 							}
 							
 							audioPlaying = false;
 						}
-				if (audioClip.isRunning() == true)
-				{
-					progressNum.set((double)(audioClip.getMicrosecondPosition()/1000000/length));
-					System.out.println(progressNum.get());
-					System.out.println("AAAAAA");
-				}
+				
 			});
 			
 			Timer t = new Timer();
 			
+			//This section of code updates the progress bar and progress text every 0.1s
 			t.scheduleAtFixedRate(
 					new TimerTask()
 					{
 						public void run()
 						{
-							if (audioPlaying = true && audioPaused == false) {
-								progressNum.set((double)(audioClip.getMicrosecondPosition()/1000000/length));
+							if (audioClip.isActive()) {
+								progress.valueProperty().set((double)(audioClip.getMicrosecondPosition()/1000000/length));
+								
+								progNum.textProperty().set(Integer.toString((int)audioClip.getMicrosecondPosition()/600000000%6)
+										+Integer.toString((int)audioClip.getMicrosecondPosition()/60000000%10)
+										+":"
+										+Integer.toString((int)audioClip.getMicrosecondPosition()/10000000%6)
+										+Integer.toString((int)audioClip.getMicrosecondPosition()/1000000%10)
+										+" / "
+										+Integer.toString((int)audioClip.getMicrosecondLength()/600000000%6)
+										+Integer.toString((int)audioClip.getMicrosecondLength()/60000000%10)
+										+":"
+										+Integer.toString((int)audioClip.getMicrosecondLength()/10000000%6)
+										+Integer.toString((int)audioClip.getMicrosecondLength()/1000000%10));
 							}
 						}
 					},
@@ -190,16 +183,20 @@ public class Main extends Application
 					if (queueList.getItems().isEmpty() != true)
 					{
 						playback(queueList.getItems().get(0),
-								pauseButton, stopButton, skipButton, volumeSlider, eqSlider1, progress, queueList);
+								pauseButton, stopButton, skipButton, volumeSlider, eqSlider1, progress, progNum, setProgress, queueList);
 						
 						queueList.getItems().remove(queueList.getItems().get(0));
 					}
 				}
 			});
 
-			progress.valueProperty().addListener(e ->
+			
+			
+			setProgress.valueProperty().addListener(e ->
 					{
-						setPosition(audioClip, progress.valueProperty().doubleValue());
+						System.out.println("I've been pressed");
+						System.out.println(setProgress.valueProperty().doubleValue());
+						setPosition(audioClip, setProgress.valueProperty().doubleValue());
 					});
 			
 			volumeSlider.valueProperty().addListener(e -> 
@@ -207,11 +204,11 @@ public class Main extends Application
 						setVolume(audioClip, volumeSlider.valueProperty().doubleValue());
 					});
 			
-			//Makes it break
-			//eqSlider1.valueProperty().addListener(e -> 
-			//		{
-			//			setPan(audioClip, eqSlider1.valueProperty().doubleValue());
-			//		});
+
+			eqSlider1.valueProperty().addListener(e -> 
+					{
+						setPan(audioClip, eqSlider1.valueProperty().doubleValue());
+					});
 		
 			
 		}
@@ -231,7 +228,13 @@ public class Main extends Application
 	
 	public void setPosition(Clip clip, double pos)
 	{
-		clip.setMicrosecondPosition((long)pos * 1000000);
+		//audioPaused = true;
+		//clip.stop();
+		clip.setMicrosecondPosition((long)Math.round(pos * clip.getMicrosecondLength()));
+		System.out.println(clip.getMicrosecondLength());
+		System.out.println(pos);
+		//clip.start();
+		//audioPaused = false;
 	}
 	
 	//Method has slight delay in actually adjusting the volume, unsure if this can be avoided
@@ -307,16 +310,27 @@ public class Main extends Application
 
 		HBox controlsUpper = new HBox();
 		HBox controlsLower = new HBox();
+		HBox controlsEvenLower = new HBox();
 		VBox controls = new VBox();
 		VBox equalizer = new VBox();
 		VBox volumeBox = new VBox();
 		HBox windows = new HBox();
 		
-		controls.getChildren().addAll(controlsUpper, controlsLower);
+		Text setCaption = new Text("Skip to point in song!");
+		
+		controls.getChildren().addAll(controlsUpper, controlsLower, controlsEvenLower, setCaption);
+		
+		Slider setProgress = new Slider(0, 1, 0);
+		
+		
+		
+		controlsEvenLower.getChildren().addAll(setProgress);
+		
+		Text progNum = new Text("00:00 / 00:00");
 		
 		Slider progress = new Slider(0, 1, 0);
 		
-		controlsLower.getChildren().addAll(progress);
+		controlsLower.getChildren().addAll(progress, progNum);
 		
 		Slider volSlider = new Slider(-1, 1, 0);
 		
@@ -416,7 +430,7 @@ public class Main extends Application
 								System.out.println(dirInput.getText() + seperator + dirList.getSelectionModel().selectedItemProperty().getValue().toString());
 								playback(dirInput.getText() 
 									+ seperator + dirList.getSelectionModel().selectedItemProperty().getValue().toString(), 
-										pauseButton, stopButton, skipButton, volSlider,eqSlider1, progress, queueList);
+										pauseButton, stopButton, skipButton, volSlider,eqSlider1, progress, progNum, setProgress, queueList);
 							}
 							else
 							{
@@ -448,7 +462,7 @@ public class Main extends Application
 							if (audioPlaying == false)
 							{
 								playback(queueList.getSelectionModel().selectedItemProperty().getValue().toString(), 
-										pauseButton, stopButton, skipButton, volSlider, eqSlider1, progress, queueList);
+										pauseButton, stopButton, skipButton, volSlider, eqSlider1, progress, progNum, setProgress, queueList);
 							
 							
 							
