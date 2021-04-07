@@ -1,3 +1,5 @@
+package application;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
@@ -296,6 +298,8 @@ public class Main extends Application
 		
 		dirList.setPrefHeight(300);
 		queueList.setPrefHeight(300);
+		dirList.setPrefWidth(340);
+		queueList.setPrefWidth(340);
 		
 		Button dirButton = new Button("Click to add audio file directory.");
 		Button pauseButton = new Button("Pause");
@@ -335,13 +339,15 @@ public class Main extends Application
 		HBox controlsLower = new HBox();
 		HBox controlsEvenLower = new HBox();
 		VBox controls = new VBox();
-		VBox equalizer = new VBox();
 		VBox volumeBox = new VBox();
+		VBox equalizer = new VBox();
 		HBox windows = new HBox();
 		
 		Text setCaption = new Text("Skip to any point in the song!");
 		
-		controls.getChildren().addAll(controlsUpper, controlsLower, controlsEvenLower, setCaption);
+		Text progressBarText = new Text("Progress Bar");
+		
+		
 		
 		Slider setProgress = new Slider(0, 1, 0);
 		
@@ -360,30 +366,28 @@ public class Main extends Application
 		Text eqText1 = new Text("Pan");
 		
 		Slider eqSlider1 = new Slider(-1, 1, 0);
-		//eqSlider1.setOrientation(Orientation.VERTICAL);
+		eqSlider1.setMaxWidth(140);
 		
 		Text volText = new Text("Volume");
 		volumeBox.getChildren().addAll(volSlider, volText);
 		volumeBox.setAlignment(Pos.CENTER);
 		
 		controlsUpper.getChildren().addAll(volumeBox, pauseButton, stopButton, skipButton, repeat, dirInput);
-		equalizer.getChildren().addAll(eqSlider1, eqText1);
-		equalizer.setAlignment(Pos.CENTER);
 		windows.getChildren().addAll(dirList, queueList);
 		
+		controls.getChildren().addAll(controlsUpper, controlsLower, progressBarText, controlsEvenLower, setCaption, equalizer);
 		
 		BorderPane pane = new BorderPane();
 	
+		equalizer.getChildren().addAll(eqSlider1, eqText1);
 		
 		BorderPane.setAlignment(dirButton, Pos.TOP_RIGHT);
 		BorderPane.setAlignment(controlsUpper, Pos.BOTTOM_RIGHT);
-		BorderPane.setAlignment(equalizer, Pos.CENTER_LEFT);
 		
 		
 		pane.setTop(controls);
 		pane.setRight(dirButton);
 		pane.setBottom(windows);
-		pane.setCenter(equalizer);
 		
 
 		
@@ -392,7 +396,7 @@ public class Main extends Application
 		
 		//Final step in GUI Creation.
 		
-		Scene scene = new Scene(pane, 700, 550);
+		Scene scene = new Scene(pane, 700, 480);
 
 		mainStage.setScene(scene);
 		mainStage.setTitle("Music Player - ECE 5010");
