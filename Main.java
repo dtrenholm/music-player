@@ -1,5 +1,3 @@
-package application;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
@@ -16,6 +14,7 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextField;
@@ -44,7 +43,7 @@ public class Main extends Application
 	}
 
 	public void playback (String audioFilePath, Button pauseButton, Button stopButton, Button skipButton, 
-			Slider volumeSlider, Slider eqSlider1, Slider progress, Text progNum, Slider setProgress, ListView<String> queueList) 
+			Slider volumeSlider, Slider eqSlider1, Slider progress, Text progNum, Slider setProgress, ListView<String> queueList, CheckBox repeat) 
 	{
 
 		File audioFile = new File(audioFilePath);
@@ -78,11 +77,19 @@ public class Main extends Application
 							audioClip.close();
 							System.out.println("Song finished.");	
 							
-							if (queueList.getItems().isEmpty() != true && audioPlaying == true)
+							if (repeat.isSelected() == true)
+							{
+								audioPlaying = false;
+								playback(audioFilePath,
+										pauseButton, stopButton, skipButton, volumeSlider, eqSlider1, progress, progNum, setProgress, queueList, repeat);
+							}
+							
+							
+							else if (queueList.getItems().isEmpty() != true && audioPlaying == true)
 							{
 								audioPlaying = false;
 								playback(queueList.getItems().get(0),
-										pauseButton, stopButton, skipButton, volumeSlider, eqSlider1, progress, progNum, setProgress, queueList);
+										pauseButton, stopButton, skipButton, volumeSlider, eqSlider1, progress, progNum, setProgress, queueList, repeat);
 								
 								queueList.getItems().remove(queueList.getItems().get(0));
 							}
@@ -160,6 +167,11 @@ public class Main extends Application
 						audioClip.close();
 					}
 					
+					if (repeat.isSelected() == true)
+					{
+						repeat.fire();
+					}
+					
 					audioPlaying = false;
 					audioPaused = false;
 					pauseButton.setText("Pause");
@@ -182,10 +194,17 @@ public class Main extends Application
 					audioPlaying = false;
 					audioPaused = true;
 					pauseButton.setText("Pause");
-					if (queueList.getItems().isEmpty() != true)
+					
+					if (repeat.isSelected() == true)
+					{
+						
+						
+					}
+					
+					else if (queueList.getItems().isEmpty() != true)
 					{
 						playback(queueList.getItems().get(0),
-								pauseButton, stopButton, skipButton, volumeSlider, eqSlider1, progress, progNum, setProgress, queueList);
+								pauseButton, stopButton, skipButton, volumeSlider, eqSlider1, progress, progNum, setProgress, queueList, repeat);
 						
 						queueList.getItems().remove(queueList.getItems().get(0));
 					}
@@ -282,6 +301,7 @@ public class Main extends Application
 		Button pauseButton = new Button("Pause");
 		Button stopButton = new Button("Stop");
 		Button skipButton = new Button("Next Song");
+		CheckBox repeat = new CheckBox("Repeat");
 		Button playListToQueueButton = new Button("Add Playlist To Queue");
 		
 		dirButton.setOnAction(new EventHandler<ActionEvent>()
@@ -346,7 +366,7 @@ public class Main extends Application
 		volumeBox.getChildren().addAll(volSlider, volText);
 		volumeBox.setAlignment(Pos.CENTER);
 		
-		controlsUpper.getChildren().addAll(volumeBox, pauseButton, stopButton, skipButton, dirInput);
+		controlsUpper.getChildren().addAll(volumeBox, pauseButton, stopButton, skipButton, repeat, dirInput);
 		equalizer.getChildren().addAll(eqSlider1, eqText1);
 		equalizer.setAlignment(Pos.CENTER);
 		windows.getChildren().addAll(dirList, queueList);
@@ -418,7 +438,7 @@ public class Main extends Application
 								System.out.println(dirInput.getText() + seperator + dirList.getSelectionModel().selectedItemProperty().getValue().toString());
 								playback(dirInput.getText() 
 									+ seperator + dirList.getSelectionModel().selectedItemProperty().getValue().toString(), 
-										pauseButton, stopButton, skipButton, volSlider,eqSlider1, progress, progNum, setProgress, queueList);
+										pauseButton, stopButton, skipButton, volSlider,eqSlider1, progress, progNum, setProgress, queueList, repeat);
 							}
 							else
 							{
@@ -450,7 +470,7 @@ public class Main extends Application
 							if (audioPlaying == false)
 							{
 								playback(queueList.getSelectionModel().selectedItemProperty().getValue().toString(), 
-										pauseButton, stopButton, skipButton, volSlider, eqSlider1, progress, progNum, setProgress, queueList);
+										pauseButton, stopButton, skipButton, volSlider, eqSlider1, progress, progNum, setProgress, queueList, repeat);
 							
 							
 							
