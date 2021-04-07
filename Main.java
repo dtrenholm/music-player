@@ -80,13 +80,15 @@ public class Main extends Application
 							
 							if (queueList.getItems().isEmpty() != true && audioPlaying == true)
 							{
+								audioPlaying = false;
 								playback(queueList.getItems().get(0),
 										pauseButton, stopButton, skipButton, volumeSlider, eqSlider1, progress, progNum, setProgress, queueList);
 								
 								queueList.getItems().remove(queueList.getItems().get(0));
 							}
-							
-							audioPlaying = false;
+							else {
+								audioPlaying = false;
+							}
 						}
 				
 			});
@@ -178,7 +180,7 @@ public class Main extends Application
 						audioClip.close();
 					}
 					audioPlaying = false;
-					audioPaused = false;
+					audioPaused = true;
 					pauseButton.setText("Pause");
 					if (queueList.getItems().isEmpty() != true)
 					{
@@ -264,7 +266,8 @@ public class Main extends Application
 	@Override
 	public void start(Stage mainStage)
 	{
-		TextField dirInput = new TextField();
+		TextField dirInput = new TextField("Input the location of your music folder");
+		dirInput.setPrefWidth(280);
 		
 		ListView<String> dirList = new ListView<String>();
 		
@@ -316,7 +319,7 @@ public class Main extends Application
 		VBox volumeBox = new VBox();
 		HBox windows = new HBox();
 		
-		Text setCaption = new Text("Skip to point in song!");
+		Text setCaption = new Text("Skip to any point in the song!");
 		
 		controls.getChildren().addAll(controlsUpper, controlsLower, controlsEvenLower, setCaption);
 		
@@ -339,27 +342,12 @@ public class Main extends Application
 		Slider eqSlider1 = new Slider(-1, 1, 0);
 		//eqSlider1.setOrientation(Orientation.VERTICAL);
 		
-		Text eqText2 = new Text("Bass");
-		
-		Slider eqSlider2 = new Slider(-1, 1, 0);
-		//eqSlider2.setOrientation(Orientation.VERTICAL);
-		
-		Text eqText3 = new Text("Mid");
-		
-		Slider eqSlider3 = new Slider(-1, 1, 0);
-		//eqSlider3.setOrientation(Orientation.VERTICAL);
-		
-		Text eqText4 = new Text("Treble");
-		
-		Slider eqSlider4 = new Slider(-1, 1, 0);
-		//eqSlider4.setOrientation(Orientation.VERTICAL);
-		
 		Text volText = new Text("Volume");
 		volumeBox.getChildren().addAll(volSlider, volText);
 		volumeBox.setAlignment(Pos.CENTER);
 		
-		controlsUpper.getChildren().addAll(dirInput, volumeBox, pauseButton, stopButton, skipButton);
-		equalizer.getChildren().addAll(eqSlider1, eqText1, eqSlider2, eqText2, eqSlider3, eqText3, eqSlider4, eqText4);
+		controlsUpper.getChildren().addAll(volumeBox, pauseButton, stopButton, skipButton, dirInput);
+		equalizer.getChildren().addAll(eqSlider1, eqText1);
 		equalizer.setAlignment(Pos.CENTER);
 		windows.getChildren().addAll(dirList, queueList);
 		
@@ -384,7 +372,7 @@ public class Main extends Application
 		
 		//Final step in GUI Creation.
 		
-		Scene scene = new Scene(pane, 700, 800);
+		Scene scene = new Scene(pane, 700, 550);
 
 		mainStage.setScene(scene);
 		mainStage.setTitle("Music Player - ECE 5010");
